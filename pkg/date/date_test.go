@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/adminvoras/commons-lib/date"
+	"github.com/adminvoras/commons-lib/pkg/date"
 	"github.com/stretchr/testify/assert"
 )
 
