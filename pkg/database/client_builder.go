@@ -1,7 +1,11 @@
 package database
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"github.com/go-sql-driver/mysql"
+	"os"
 	"time"
 
 	// MySQL driver.
@@ -17,7 +21,9 @@ const (
 	defaultMaxOpenConns    = 350
 	defaultMaxIdleConns    = 100
 	defaultConnMaxLifetime = 100 * time.Millisecond
-	datasourceConnection   = "%s:%s@tcp(%s)/%s?parseTime=%v&charset=%s"
+	defaultTls             = "false"
+	customTls              = "custom"
+	datasourceConnection   = "%s:%s@tcp(%s)/%s?parseTime=%v&charset=%s&tls=%s"
 )
 
 // ClientBuilder the database client builder interface.
@@ -28,6 +34,7 @@ type ClientBuilder interface {
 	WithDBName(name string) ClientBuilder
 	WithUsername(username string) ClientBuilder
 	WithPassword(password string) ClientBuilder
+	WithCA(caFile string) ClientBuilder
 	WithMaxIdleConns(maxIdleConns int) ClientBuilder
 	WithMaxOpenConns(maxOpenConns int) ClientBuilder
 	WithConnMaxLifetime(connMaxLifetime time.Duration) ClientBuilder
@@ -43,6 +50,8 @@ type clientBuilder struct {
 	dbName          string
 	username        string
 	password        string
+	ca              string
+	tls             string
 	maxIdleConns    int
 	maxOpenConns    int
 	connMaxLifetime time.Duration
@@ -57,6 +66,7 @@ func NewClientBuilder() ClientBuilder {
 		maxIdleConns:    defaultMaxIdleConns,
 		maxOpenConns:    defaultMaxOpenConns,
 		connMaxLifetime: defaultConnMaxLifetime,
+		tls:             defaultTls,
 		initialPing:     true,
 	}
 
@@ -95,6 +105,13 @@ func (builder *clientBuilder) WithUsername(username string) ClientBuilder {
 
 func (builder *clientBuilder) WithPassword(password string) ClientBuilder {
 	builder.password = password
+
+	return builder
+}
+
+func (builder *clientBuilder) WithCA(caFile string) ClientBuilder {
+	builder.tls = customTls
+	builder.ca = caFile
 
 	return builder
 }
@@ -140,8 +157,14 @@ func (builder *clientBuilder) Build() (Client, error) {
 		return nil, voraserror.New(nil, "database password cannot be empty")
 	}
 
+	if builder.ca != "" {
+		if err := addCertificate(builder.ca); err != nil {
+			return nil, voraserror.New(nil, "error adding certificate in database")
+		}
+	}
+
 	db, err := sqlx.Open(builder.driverName, fmt.Sprintf(datasourceConnection, builder.username, builder.password,
-		builder.host, builder.dbName, true, builder.charset))
+		builder.host, builder.dbName, true, builder.charset, builder.tls))
 
 	errorMessage := fmt.Sprintf("error connecting to %v database", builder.driverName)
 
@@ -160,4 +183,26 @@ func (builder *clientBuilder) Build() (Client, error) {
 	}
 
 	return db, err
+}
+
+func addCertificate(ca string) error {
+	caCert, err := os.ReadFile(ca)
+	if err != nil {
+		return err
+	}
+
+	caCertPool := x509.NewCertPool()
+	caCertPool.AppendCertsFromPEM(caCert)
+
+	tlsConfig := &tls.Config{
+		RootCAs:    caCertPool,
+		MinVersion: tls.VersionTLS13,
+	}
+
+	err = mysql.RegisterTLSConfig(customTls, tlsConfig)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

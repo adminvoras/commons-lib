@@ -4,7 +4,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/adminvoras/commons-lib/log"
+	"github.com/adminvoras/commons-lib/pkg/log"
 	"github.com/stretchr/testify/assert"
 )
 
