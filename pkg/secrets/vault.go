@@ -10,14 +10,28 @@ import (
 )
 
 type Secret interface {
-	Get(ctx context.Context, key, project, scope string) (string, error)
+	Get(key string) (string, error)
 }
 
 type secret struct {
-	client *vault.Client
+	client  *vault.Client
+	project string
+	scope   string
 }
 
-func NewSecrets(token string) (Secret, error) {
+func NewSecrets(token, project, scope string) (Secret, error) {
+	if token == "" {
+		return nil, errors.New(nil, "token cannot be nil")
+	}
+
+	if project == "" {
+		return nil, errors.New(nil, "project cannot be nil")
+	}
+
+	if scope == "" {
+		return nil, errors.New(nil, "scope cannot be nil")
+	}
+
 	client, err := vault.New(
 		vault.WithAddress("http://149.50.139.210:8200"),
 		vault.WithRequestTimeout(10*time.Second),
@@ -31,12 +45,14 @@ func NewSecrets(token string) (Secret, error) {
 	}
 
 	return &secret{
-		client: client,
+		client:  client,
+		project: project,
+		scope:   scope,
 	}, nil
 }
 
-func (s secret) Get(ctx context.Context, key, project, scope string) (string, error) {
-	resp, err := s.client.Read(ctx, fmt.Sprintf("/%s/%s", project, scope))
+func (s secret) Get(key string) (string, error) {
+	resp, err := s.client.Read(context.Background(), fmt.Sprintf("/%s/%s", s.project, s.scope))
 	if err != nil {
 		return "", errors.New(err, "error reading secret")
 	}
