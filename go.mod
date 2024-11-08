@@ -8,6 +8,7 @@ require (
 	github.com/go-chi/chi/v5 v5.1.0
 	github.com/go-sql-driver/mysql v1.8.1
 	github.com/gofrs/uuid v4.4.0+incompatible
+	github.com/hashicorp/vault-client-go v0.4.3
 	github.com/jmoiron/sqlx v1.4.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
@@ -21,7 +22,6 @@ require (
 	github.com/hashicorp/go-retryablehttp v0.7.1 // indirect
 	github.com/hashicorp/go-rootcerts v1.0.2 // indirect
 	github.com/hashicorp/go-secure-stdlib/strutil v0.1.2 // indirect
-	github.com/hashicorp/vault-client-go v0.4.3 // indirect
 	github.com/mitchellh/go-homedir v1.1.0 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/ryanuber/go-glob v1.0.0 // indirect
